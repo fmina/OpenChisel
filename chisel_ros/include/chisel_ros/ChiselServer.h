@@ -34,6 +34,7 @@
 #include <open_chisel/camera/DepthImage.h>
 #include <open_chisel/camera/ColorImage.h>
 #include <open_chisel/pointcloud/PointCloud.h>
+#include <open_chisel/truncation/ConstantTruncator.h>
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -95,6 +96,7 @@ namespace chisel_ros
             inline const std::string& GetMeshTopic() const { return meshTopic; }
 
             void SetupProjectionIntegrator(const chisel::Vec4& truncation, uint16_t weight, bool useCarving, float carvingDist);
+            void SetupProjectionIntegrator(double truncation_distance, uint16_t weight, bool useCarving, float carvingDist);
             void SetupMeshPublisher(const std::string& meshTopic);
             void SetupChunkBoxPublisher(const std::string& boxTopic);
             void SetupDepthPosePublisher(const std::string& depthPoseTopic);
@@ -152,6 +154,10 @@ namespace chisel_ros
             void SetColorPose(const Eigen::Affine3f& tf);
             void SetColorCameraInfo(const sensor_msgs::CameraInfoConstPtr& info);
             void SetDepthCameraInfo(const sensor_msgs::CameraInfoConstPtr& info);
+
+            bool GetSDFAndGradient(Eigen::Vector3f position, double *distance, Eigen::Vector3f *gradient){
+                            return chiselMap->GetSDFAndGradient(position, distance, gradient);
+                        }
 
         protected:
             visualization_msgs::Marker CreateFrustumMarker(const chisel::Frustum& frustum);

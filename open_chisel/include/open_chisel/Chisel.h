@@ -31,6 +31,8 @@
 #include <open_chisel/geometry/Frustum.h>
 #include <open_chisel/pointcloud/PointCloud.h>
 
+#include <iostream>
+
 namespace chisel
 {
 
@@ -45,18 +47,46 @@ namespace chisel
             inline ChunkManager& GetMutableChunkManager() { return chunkManager; }
             inline void SetChunkManager(const ChunkManager& manager) { chunkManager = manager; }
 
+            bool GetSDFAndGradient(Eigen::Vector3f position, double *distance, Eigen::Vector3f *gradient){
+                return chunkManager.GetSDFAndGradient(position, distance, gradient);
+            }
+
             void IntegratePointCloud(const ProjectionIntegrator& integrator, const PointCloud& cloud, const Transform& extrinsic, float truncation, float maxDist);
 
             template <class DataType> void IntegrateDepthScan(const ProjectionIntegrator& integrator, const std::shared_ptr<const DepthImage<DataType> >& depthImage, const Transform& extrinsic, const PinholeCamera& camera)
             {
-                    printf("CHISEL: Integrating a scan\n");
+//                    printf("CHISEL: Integrating a scan\n");
                     Frustum frustum;
                     camera.SetupFrustum(extrinsic, &frustum);
+
+
 
                     ChunkIDList chunksIntersecting;
                     chunkManager.GetChunkIDsIntersecting(frustum, &chunksIntersecting);
 
                     std::mutex mutex;
+
+                    Eigen::Vector3f camera_position = extrinsic.translation();
+                    ChunkIDList farChunks;
+                    Vec3 halfResolution = Vec3(chunkManager.GetResolution(), chunkManager.GetResolution(), chunkManager.GetResolution()) * 0.5f;
+
+                    double radius = 2.0;
+                    mutex.lock();
+					for (int i = 0; i < chunkManager.GetChunkSize().x(); i++) {
+						for (int j = 0; j < chunkManager.GetChunkSize().y(); j++) {
+							for (int k = 0; k < chunkManager.GetChunkSize().z(); k++) {
+								ChunkID id = ChunkID(i,j,k);
+								Vec3 position = Vec3(i,j,k)*chunkManager.GetResolution() + halfResolution;
+								if((camera_position - position).norm() > radius){
+									farChunks.push_back(id);
+									std::cout << "remove id: " << id.transpose() << std::endl;
+								}
+							}
+						}
+
+					}
+					mutex.unlock();
+					GarbageCollect(farChunks);
                     ChunkIDList garbageChunks;
                     for(const ChunkID& chunkID : chunksIntersecting)
                     //parallel_for(chunksIntersecting.begin(), chunksIntersecting.end(), [&](const ChunkID& chunkID)
@@ -96,9 +126,16 @@ namespace chisel
                         mutex.unlock();
                     }
                     //);
-                    printf("CHISEL: Done with scan\n");
+//                    printf("CHISEL: Done with scan\n");
                     GarbageCollect(garbageChunks);
+
+
                     //chunkManager.PrintMemoryStatistics();
+//                    Eigen::Vector3f position(-0.7, 0, 0.8);
+//                    Eigen::Vector3f gradient(0,0,0);
+//                    double sdf;
+//                    chunkManager.GetSDFAndGradient(position, &sdf, &gradient);
+//                    std::cout << "gradient in chisel: " << gradient.transpose() << "\tsdf: " << sdf << std::endl;;
             }
 
             template <class DataType, class ColorType> void IntegrateDepthScanColor(const ProjectionIntegrator& integrator, const std::shared_ptr<const DepthImage<DataType> >& depthImage,  const Transform& depthExtrinsic, const PinholeCamera& depthCamera, const std::shared_ptr<const ColorImage<ColorType> >& colorImage, const Transform& colorExtrinsic, const PinholeCamera& colorCamera)

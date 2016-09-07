@@ -137,7 +137,7 @@ int main(int argc, char** argv)
 
         if(!server->IsPaused() && server->HasNewData())
         {
-            ROS_INFO("Got data.");
+//            ROS_INFO("Got data.");
             switch (server->GetMode())
             {
                 case chisel_ros::ChiselServer::FusionMode::DepthImage:

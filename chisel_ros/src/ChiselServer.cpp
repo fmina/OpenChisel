@@ -269,14 +269,14 @@ namespace chisel_ros
             tries++;
             try
             {
-                transformListener.waitForTransform(depthCamera.transform, baseTransform, depthImage->header.stamp, ros::Duration(0.5));
+                transformListener.waitForTransform(depthCamera.transform, baseTransform, depthImage->header.stamp, ros::Duration(1.5));
                 transformListener.lookupTransform(depthCamera.transform, baseTransform, depthImage->header.stamp, tf);
                 depthCamera.gotPose = true;
                 gotTransform = true;
             }
             catch (std::exception& e)
             {
-                ros::Rate lookupRate(0.5f);
+                ros::Rate lookupRate(1.5f);
                 ROS_WARN("%s\n", e.what());
             }
         }
@@ -402,6 +402,15 @@ namespace chisel_ros
         projectionIntegrator.SetCarvingEnabled(useCarving);
     }
 
+    void ChiselServer::SetupProjectionIntegrator(double truncation_distance, uint16_t weight, bool useCarving, float carvingDist)
+    {
+        projectionIntegrator.SetCentroids(GetChiselMap()->GetChunkManager().GetCentroids());
+        projectionIntegrator.SetTruncator(chisel::TruncatorPtr(new chisel::ConstantTruncator(truncation_distance)));
+        projectionIntegrator.SetWeighter(chisel::WeighterPtr(new chisel::ConstantWeighter(weight)));
+        projectionIntegrator.SetCarvingDist(carvingDist);
+        projectionIntegrator.SetCarvingEnabled(useCarving);
+    }
+
     void ChiselServer::IntegrateLastDepthImage()
     {
         if (!IsPaused() && depthCamera.gotInfo && depthCamera.gotPose && lastDepthImage.get())
@@ -412,10 +421,10 @@ namespace chisel_ros
             }
             else
             {
-                printf("CHISEL: Integrating depth scan\n");
+//                printf("CHISEL: Integrating depth scan\n");
                 chiselMap->IntegrateDepthScan<DepthData>(projectionIntegrator, lastDepthImage, depthCamera.lastPose, depthCamera.cameraModel);
             }
-            printf("CHISEL: Done with scan\n");
+//            printf("CHISEL: Done with scan\n");
             PublishLatestChunkBoxes();
             PublishDepthFrustum();
 
@@ -428,7 +437,7 @@ namespace chisel_ros
     {
         if (!IsPaused()  && pointcloudTopic.gotPose && lastPointCloud.get())
         {
-            ROS_INFO("Integrating point cloud");
+//            ROS_INFO("Integrating point cloud");
             chiselMap->IntegratePointCloud(projectionIntegrator, *lastPointCloud, pointcloudTopic.lastPose, 0.1f, farPlaneDist);
             PublishLatestChunkBoxes();
             chiselMap->UpdateMeshes();;

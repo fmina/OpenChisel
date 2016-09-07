@@ -26,6 +26,11 @@
 #include <cstddef>
 #include <thread>
 #include <algorithm>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <cstdlib>
+#include <vector>
 
 namespace chisel
 {
