@@ -65,28 +65,26 @@ namespace chisel
                     chunkManager.GetChunkIDsIntersecting(frustum, &chunksIntersecting);
 
                     std::mutex mutex;
+                    std::cout << "chunk size: " << chunkManager.GetChunks().size() << std::endl;
 
-                    Eigen::Vector3f camera_position = extrinsic.translation();
+                    Vec3 camera_position = extrinsic.translation();
                     ChunkIDList farChunks;
                     Vec3 halfResolution = Vec3(chunkManager.GetResolution(), chunkManager.GetResolution(), chunkManager.GetResolution()) * 0.5f;
 
                     double radius = 2.0;
                     mutex.lock();
-					for (int i = 0; i < chunkManager.GetChunkSize().x(); i++) {
-						for (int j = 0; j < chunkManager.GetChunkSize().y(); j++) {
-							for (int k = 0; k < chunkManager.GetChunkSize().z(); k++) {
-								ChunkID id = ChunkID(i,j,k);
-								Vec3 position = Vec3(i,j,k)*chunkManager.GetResolution() + halfResolution;
-								if((camera_position - position).norm() > radius){
-									farChunks.push_back(id);
-									std::cout << "remove id: " << id.transpose() << std::endl;
-								}
-							}
+					for (auto chunk : chunkManager.GetChunks()) {
+						Vec3 position = Vec3(chunk.first.x(), chunk.first.y(),
+								chunk.first.z()) * chunkManager.GetResolution()
+								+ halfResolution;
+						if ((camera_position - position).norm() > radius) {
+							//farChunks.push_back(chunk.first);
 						}
 
 					}
+//					GarbageCollect(farChunks);
 					mutex.unlock();
-					GarbageCollect(farChunks);
+
                     ChunkIDList garbageChunks;
                     for(const ChunkID& chunkID : chunksIntersecting)
                     //parallel_for(chunksIntersecting.begin(), chunksIntersecting.end(), [&](const ChunkID& chunkID)
